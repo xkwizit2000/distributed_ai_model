@@ -1,0 +1,63 @@
+# Kubernetes Pod Template for Gemma Distributed Inference Worker
+# This template defines a single worker pod for the distributed inference job.
+# In production, you would typically use a Job or StatefulSet to manage multiple workers.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gemma-inference-worker
+  labels:
+    app: gemma-distributed
+    role: inference-worker
+spec:
+  restartPolicy: Never
+  containers:
+  - name: gemma-inference
+    image: gemma-distributed:latest
+    imagePullPolicy: IfNotPresent
+    command: ["/app/scripts/run_inference.sh"]
+    env:
+    - name: NODE_RANK
+      value: "0"  # Set via downward API or init container for each worker
+    - name: MASTER_ADDR
+      value: "gemma-inference-headless"  # Headless service for worker discovery
+    - name: MASTER_PORT
+      value: "29500"
+    - name: WORLD_SIZE
+      value: "2"  # Total number of workers
+    - name: HSA_OVERRIDE_GFX_VERSION
+      value: "11.0.0"  # Override for AMD GPU compatibility
+    resources:
+      limits:
+        amd.com/gpu: 1  # Request one AMD GPU
+        memory: "24Gi"  # System memory limit
+        cpu: "4"       # CPU limit
+      requests:
+        amd.com/gpu: 1
+        memory: "20Gi"
+        cpu: "2"
+    volumeMounts:
+    - name: model-weights
+      mountPath: /weights
+      readOnly: true
+    - name: deepspeed-config
+      mountPath: /app/deepspeed_config.json
+      subPath: deepspeed_config.json
+      readOnly: true
+    securityContext:
+      privileged: false
+      capabilities:
+        add: ["SYS_ADMIN"]  # May be needed for GPU access
+  volumes:
+  - name: model-weights
+    persistentVolumeClaim:
+      claimName: gemma-model-weights-pvc  # PVC containing model weights
+  - name: deepspeed-config
+    configMap:
+      name: gemma-deepspeed-config
+  nodeSelector:
+    gpu-type: amd-6800m  # Select nodes with AMD 6800M GPUs
+  tolerations:
+  - key: "amd.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"

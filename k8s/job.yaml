@@ -1,0 +1,66 @@
+# Kubernetes Job for Gemma Distributed Inference
+# This Job runs the distributed inference process across multiple pods.
+# Uses parallelism settings to launch workers and a coordinator.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gemma-distributed-inference
+  labels:
+    app: gemma-distributed
+spec:
+  parallelism: 2  # Number of worker pods (matches WORLD_SIZE)
+  completions: 2  # Wait for all workers to complete
+  backoffLimit: 0  # No retries on failure
+  ttlSecondsAfterFinished: 3600  # Clean up after 1 hour
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: gemma-worker
+        image: gemma-distributed:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/app/scripts/run_inference.sh"]
+        env:
+        - name: NODE_RANK
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['job-completion-index']  # Dynamic rank
+        - name: MASTER_ADDR
+          value: "gemma-distributed-inference-headless"
+        - name: MASTER_PORT
+          value: "29500"
+        - name: WORLD_SIZE
+          value: "2"
+        - name: HSA_OVERRIDE_GFX_VERSION
+          value: "11.0.0"
+        resources:
+          limits:
+            amd.com/gpu: 1
+            memory: "24Gi"
+            cpu: "4"
+          requests:
+            amd.com/gpu: 1
+            memory: "20Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: model-weights
+          mountPath: /weights
+          readOnly: true
+        - name: deepspeed-config
+          mountPath: /app/deepspeed_config.json
+          subPath: deepspeed_config.json
+          readOnly: true
+      volumes:
+      - name: model-weights
+        persistentVolumeClaim:
+          claimName: gemma-model-weights-pvc
+      - name: deepspeed-config
+        configMap:
+          name: gemma-deepspeed-config
+      nodeSelector:
+        gpu-type: amd-6800m
+      tolerations:
+      - key: "amd.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"

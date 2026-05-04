@@ -1,0 +1,25 @@
+# Kubernetes Headless Service for Gemma Distributed Inference Workers
+# This service enables direct pod-to-pod communication for the distributed process.
+# A headless service (clusterIP: None) allows pods to discover each other via DNS.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-inference-headless
+  labels:
+    app: gemma-distributed
+spec:
+  clusterIP: None  # Headless service - no IP, just DNS
+  selector:
+    app: gemma-distributed
+    role: inference-worker
+  ports:
+  - name: distributed
+    port: 29500
+    targetPort: 29500
+    protocol: TCP
+  - name: health
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  publishNotReadyAddresses: true  # Include unready pods in DNS for discovery

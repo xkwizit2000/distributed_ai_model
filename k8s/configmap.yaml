@@ -1,0 +1,42 @@
+# Kubernetes ConfigMap for DeepSpeed Configuration
+# This ConfigMap stores the deepspeed_config.json file for use by worker pods.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gemma-deepspeed-config
+  labels:
+    app: gemma-distributed
+data:
+  deepspeed_config.json: |
+    {
+      "bf16": {
+        "enabled": false
+      },
+      "fp16": {
+        "enabled": false
+      },
+      "zero_optimization": {
+        "stage": 3,
+        "offload_param": false,
+        "offload_optimizer": false,
+        "overlap_comm": true,
+        "contiguous_gradients": true,
+        "sub_group_size": 1e9,
+        "reduce_bucket_size": 5e8,
+        "stage3_max_live_parameters": 1e9,
+        "stage3_prefetch_bucket_size": 5e7,
+        "stage3_param_persistence_threshold": 1e9
+      },
+      "train_micro_batch_size_per_gpu": 1,
+      "train_batch_size": 1,
+      "gradient_accumulation_steps": 1,
+      "steps": 1,
+      "gradient_clipping": 1.0,
+      "communication_data_type": "fp16",
+      "prescale_gradients": false,
+      "wall_clock_breakdown": false,
+      "flops_profiler": {
+        "enabled": false
+      }
+    }
