@@ -1,7 +1,7 @@
 # Distributed AI Model Inference Container
 # Optimized build to reduce image size
 
-FROM docker.io/rocm/pytorch:rocm7.2.2_ubuntu22.04_py3.10_pytorch_release_2.10.0
+FROM docker.io/rocm/pytorch:rocm6.1_ubuntu22.04_py3.10_pytorch_2.1.2
 
 # Set working directory
 WORKDIR /app

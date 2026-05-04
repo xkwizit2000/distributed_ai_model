@@ -43,6 +43,8 @@ echo "Node Rank: $NODE_RANK"
 echo "Master Address: $MASTER_ADDR:$MASTER_PORT"
 echo "World Size: $WORLD_SIZE"
 echo "Processes per Node: $NPROC_PER_NODE"
+echo "NNODES: $NNODES"
+echo "NODE_RANK: $NODE_RANK"
 echo ""
 
 # Print ROCm device information
@@ -51,14 +53,14 @@ rocm-smi || echo "rocm-smi not available"
 echo ""
 
 # For single-node testing, run the Python script directly
-if [ "$NNODES" -eq 1 ] && [ "$NODE_RANK" -eq 0 ]; then
+if [ "${NNODES:-1}" -eq 1 ] && [ "${NODE_RANK:-0}" -eq 0 ]; then
     echo "Running single-node inference..."
     python /app/scripts/run_gemma_inference.py
 else
-    # Launch using DeepSpeed (better ROCm support)
-    echo "Running distributed inference..."
-    deepspeed --num_nodes=$NNODES --num_gpus=$NPROC_PER_NODE \
-        --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
+    # Launch using torch.distributed.run as an alternative to DeepSpeed
+    echo "Running distributed inference with torch.distributed.run..."
+    python -m torch.distributed.run --nnodes=${NNODES:-1} --nproc-per-node=${NPROC_PER_NODE:-1} \
+        --node-rank=${NODE_RANK:-0} --master-addr=$MASTER_ADDR --master-port=$MASTER_PORT \
         /app/scripts/run_gemma_inference.py
 fi
 

@@ -57,31 +57,46 @@ def get_env_vars():
     }
 
 def load_model_and_tokenizer():
-    """Load Gemma model with DeepSpeed initialization."""
+    """Load Gemma model with optional DeepSpeed initialization."""
     print(f"Loading model: {MODEL_NAME}")
     
     try:
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         
-        # Load model without quantization for DeepSpeed
-        model = AutoModelForCausalLM.from_pretrained(
-            MODEL_NAME,
-            trust_remote_code=True,
-        )
-        
-        # Initialize with DeepSpeed
-        try:
-            model = deepspeed.init_inference(
-                model,
-                mp_size=1,  # Model parallelism size
-                dtype=torch.float16,
-                replace_with_kernel_inject=True,
+        # Check if we're running in distributed mode
+        env_vars = get_env_vars()
+        if env_vars['world_size'] > 1:
+            print("Initializing DeepSpeed for distributed inference...")
+            # Load model without quantization for DeepSpeed
+            model = AutoModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                trust_remote_code=True,
             )
-        except Exception as e:
-            print(f"Error initializing DeepSpeed: {e}")
-            print("Falling back to CPU inference...")
-            # Fallback to CPU if DeepSpeed initialization fails
-            model = model.cpu()
+            # Initialize with DeepSpeed for distributed inference
+            try:
+                model = deepspeed.init_inference(
+                    model,
+                    mp_size=1,  # Model parallelism size
+                    dtype=torch.float16,
+                    replace_with_kernel_inject=True,
+                )
+            except Exception as e:
+                print(f"Error initializing DeepSpeed: {e}")
+                print("Falling back to CPU inference...")
+                # Fallback to CPU if DeepSpeed initialization fails
+                model = model.cpu()
+        else:
+            print("Using single-node inference without DeepSpeed...")
+            # For single-node, use 4-bit quantization to fit in VRAM
+            model = AutoModelForCausalLM.from_pretrained(
+                MODEL_NAME,
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_quant_type="nf4",
+                use_nested_quant=False,
+                device_map="auto",
+                trust_remote_code=True,
+            )
         
         return model, tokenizer
     except Exception as e:
