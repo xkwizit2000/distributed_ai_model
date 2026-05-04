@@ -70,12 +70,18 @@ def load_model_and_tokenizer():
         )
         
         # Initialize with DeepSpeed
-        model = deepspeed.init_inference(
-            model,
-            mp_size=1,  # Model parallelism size
-            dtype=torch.float16,
-            replace_with_kernel_inject=True,
-        )
+        try:
+            model = deepspeed.init_inference(
+                model,
+                mp_size=1,  # Model parallelism size
+                dtype=torch.float16,
+                replace_with_kernel_inject=True,
+            )
+        except Exception as e:
+            print(f"Error initializing DeepSpeed: {e}")
+            print("Falling back to CPU inference...")
+            # Fallback to CPU if DeepSpeed initialization fails
+            model = model.cpu()
         
         return model, tokenizer
     except Exception as e:
@@ -102,11 +108,15 @@ def generate_response(model, tokenizer, input_text):
 
 def main():
     """Main entry point."""
-    print("=== Gemma 4 26B Distributed Inference ===")
-    
     env_vars = get_env_vars()
-    print(f"Node rank: {env_vars['node_rank']}, World size: {env_vars['world_size']}")
-    print(f"Master: {env_vars['master_addr']}:{env_vars['master_port']}")
+    
+    # Check if we're running in distributed mode
+    if env_vars['world_size'] > 1:
+        print("=== Gemma 4 26B Distributed Inference ===")
+        print(f"Node rank: {env_vars['node_rank']}, World size: {env_vars['world_size']}")
+        print(f"Master: {env_vars['master_addr']}:{env_vars['master_port']}")
+    else:
+        print("=== Gemma 4 26B Single-Node Inference ===")
     
     # Print device information
     if torch.cuda.is_available():

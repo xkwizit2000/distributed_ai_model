@@ -41,6 +41,10 @@ COPY scripts/ /app/scripts/
 # Set environment variables for ROCm
 ENV HSA_OVERRIDE_GFX_VERSION=11.0.0
 ENV PYTORCH_CUDA_ALLOC_CONF=allow_all
+ENV HSA_XNACK=1
+ENV HIP_VISIBLE_DEVICES=0
+ENV ROCR_VISIBLE_DEVICES=0
+ENV PYTORCH_HIP_ALLOC_CONF=backend:cudaMallocAsync
 
 # Default command (can be overridden by docker run)
 # The actual launch command will be provided at runtime

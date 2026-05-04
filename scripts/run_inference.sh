@@ -50,9 +50,16 @@ echo "=== ROCm Device Information ==="
 rocm-smi || echo "rocm-smi not available"
 echo ""
 
-# Launch using DeepSpeed (better ROCm support)
-deepspeed --num_nodes=$NNODES --num_gpus=$NPROC_PER_NODE \
-    --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
-    /app/scripts/run_gemma_inference.py
+# For single-node testing, run the Python script directly
+if [ "$NNODES" -eq 1 ] && [ "$NODE_RANK" -eq 0 ]; then
+    echo "Running single-node inference..."
+    python /app/scripts/run_gemma_inference.py
+else
+    # Launch using DeepSpeed (better ROCm support)
+    echo "Running distributed inference..."
+    deepspeed --num_nodes=$NNODES --num_gpus=$NPROC_PER_NODE \
+        --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
+        /app/scripts/run_gemma_inference.py
+fi
 
 echo "=== Inference Complete ==="
