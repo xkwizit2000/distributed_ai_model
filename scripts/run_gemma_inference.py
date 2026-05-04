@@ -31,7 +31,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from bitsandbytes import BnbLinearType
 
 # Configuration
-MODEL_NAME = "google/gemma-4-26b-it"  # Update to 26B variant
+MODEL_NAME = "google/gemma-4-E4B-it"  # Update to 26B variant
 QUANTIZATION = "4bit"  # Use 4-bit quantization to fit in VRAM
 MAX_NEW_TOKENS = 256
 TEMPERATURE = 0.7
