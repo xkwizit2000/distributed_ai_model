@@ -1,0 +1,34 @@
+# .dockerignore for distributed_ai_model
+
+# Ignore git directory
+.git/
+
+# Ignore any temporary files
+*.tmp
+*.log
+
+# Ignore any build artifacts from previous builds
+*.tar.gz
+*.zip
+
+# Ignore any documentation files that aren't needed in the container
+*.md
+*.txt
+
+# Ignore any IDE configuration files
+.vscode/
+.idea/
+
+# Ignore any Python cache files (these will be in the container, not the build context)
+__pycache__/
+*.pyc
+
+# Ignore the k8s directory if not needed in the container
+k8s/
+
+# Ignore memory files
+memory/
+
+# Ignore any other unnecessary files
+.DS_Store
+Thumbs.db
