@@ -1,7 +1,7 @@
 # Distributed AI Model Inference Container
 # Optimized build to reduce image size
 
-FROM docker.io/rocm/pytorch:rocm6.1_ubuntu22.04_py3.10_pytorch_2.1.2
+FROM docker.io/rocm/pytorch:rocm7.2.2_ubuntu22.04_py3.10_pytorch_release_2.10.0
 
 # Set working directory
 WORKDIR /app
@@ -9,6 +9,7 @@ WORKDIR /app
 # Install Python dependencies for DeepSpeed and Hugging Face
 # Using --no-cache-dir to avoid storing pip cache
 RUN pip install --no-cache-dir \
+    typing_extensions==4.8.0 \
     deepspeed \
     transformers \
     accelerate \

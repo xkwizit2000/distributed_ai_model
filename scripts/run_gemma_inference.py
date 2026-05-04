@@ -21,9 +21,16 @@ Note: The 'torchrun' command may not be available in your environment. Use 'pyth
 import os
 import sys
 import torch
-import deepspeed
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from deepspeed.accelerator import get_accelerator
+
+# Try to import deepspeed, but handle if it's not available
+try:
+    import deepspeed
+    from deepspeed.accelerator import get_accelerator
+    DEEPSPEED_AVAILABLE = True
+except ImportError:
+    print("DeepSpeed not available, will use standard PyTorch")
+    DEEPSPEED_AVAILABLE = False
 
 # Configuration
 MODEL_NAME = "google/gemma-4-E4B-it"  # 4B model for initial validation
@@ -66,25 +73,36 @@ def load_model_and_tokenizer():
         # Check if we're running in distributed mode
         env_vars = get_env_vars()
         if env_vars['world_size'] > 1:
-            print("Initializing DeepSpeed for distributed inference...")
-            # Load model without quantization for DeepSpeed
-            model = AutoModelForCausalLM.from_pretrained(
-                MODEL_NAME,
-                trust_remote_code=True,
-            )
-            # Initialize with DeepSpeed for distributed inference
-            try:
-                model = deepspeed.init_inference(
-                    model,
-                    mp_size=1,  # Model parallelism size
-                    dtype=torch.float16,
-                    replace_with_kernel_inject=True,
+            if DEEPSPEED_AVAILABLE:
+                print("Initializing DeepSpeed for distributed inference...")
+                # Load model without quantization for DeepSpeed
+                model = AutoModelForCausalLM.from_pretrained(
+                    MODEL_NAME,
+                    trust_remote_code=True,
                 )
-            except Exception as e:
-                print(f"Error initializing DeepSpeed: {e}")
-                print("Falling back to CPU inference...")
-                # Fallback to CPU if DeepSpeed initialization fails
-                model = model.cpu()
+                # Initialize with DeepSpeed for distributed inference
+                try:
+                    model = deepspeed.init_inference(
+                        model,
+                        mp_size=1,  # Model parallelism size
+                        dtype=torch.float16,
+                        replace_with_kernel_inject=True,
+                    )
+                except Exception as e:
+                    print(f"Error initializing DeepSpeed: {e}")
+                    print("Falling back to CPU inference...")
+                    # Fallback to CPU if DeepSpeed initialization fails
+                    model = model.cpu()
+            else:
+                print("DeepSpeed not available, using standard PyTorch for distributed inference...")
+                # Load model without quantization
+                model = AutoModelForCausalLM.from_pretrained(
+                    MODEL_NAME,
+                    trust_remote_code=True,
+                )
+                # Move model to GPU if available
+                if torch.cuda.is_available():
+                    model = model.cuda()
         else:
             print("Using single-node inference without DeepSpeed...")
             # For single-node, use 4-bit quantization to fit in VRAM
