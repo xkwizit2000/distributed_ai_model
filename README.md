@@ -1,6 +1,6 @@
 # Distributed AI Model Inference
 
-Distributed inference setup for Gemma 2 26B/31B models across multiple AMD GPU nodes using DeepSpeed and containerization.
+Distributed inference setup for Gemma 4 26B model across multiple AMD GPU nodes using DeepSpeed and containerization.
 
 ## Docker Image Size
 
