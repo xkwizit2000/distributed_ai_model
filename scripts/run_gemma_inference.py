@@ -2,7 +2,7 @@
 """
 Gemma 4 Distributed Inference Script
 
-This script loads the Gemma 4 26B model using DeepSpeed ZeRO-3 sharding
+This script loads the Gemma 4 26B model using DeepSpeed for inference
 to distribute the model across multiple GPUs (pot on separate nodes).
 
 Usage:
@@ -23,16 +23,10 @@ import sys
 import torch
 import deepspeed
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-import os
-import torch
-import deepspeed
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from bitsandbytes import BnbLinearType
+from deepspeed.accelerator import get_accelerator
 
 # Configuration
-MODEL_NAME = "google/gemma-4-E4B-it"  # Update to 26B variant
-QUANTIZATION = "4bit"  # Use 4-bit quantization to fit in VRAM
+MODEL_NAME = "google/gemma-4-E4B-it"  # 4B model for initial validation
 MAX_NEW_TOKENS = 256
 TEMPERATURE = 0.7
 TOP_P = 0.9
@@ -63,21 +57,24 @@ def get_env_vars():
     }
 
 def load_model_and_tokenizer():
-    """Load Gemma model with 4-bit quantization."""
+    """Load Gemma model with DeepSpeed initialization."""
     print(f"Loading model: {MODEL_NAME}")
     
     try:
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         
-        # Load model with 4-bit quantization
+        # Load model without quantization for DeepSpeed
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_quant_type="nf4",
-            use_nested_quant=False,
-            device_map="auto",  # Let accelerate/DeepSpeed handle device mapping
             trust_remote_code=True,
+        )
+        
+        # Initialize with DeepSpeed
+        model = deepspeed.init_inference(
+            model,
+            mp_size=1,  # Model parallelism size
+            dtype=torch.float16,
+            replace_with_kernel_inject=True,
         )
         
         return model, tokenizer
@@ -139,5 +136,5 @@ def main():
         traceback.print_exc()
         sys.exit(1)
 
-if __name == "__main__":
+if __name__ == "__main__":
     main()

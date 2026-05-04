@@ -50,14 +50,9 @@ echo "=== ROCm Device Information ==="
 rocm-smi || echo "rocm-smi not available"
 echo ""
 
-# Launch using PyTorch's torch.distributed.run module
-# Note: Use 'python -m torch.distributed.run' instead of 'torchrun' command
-python -m torch.distributed.run \
-    --nnodes=$NNODES \
-    --nproc-per-node=$NPROC_PER_NODE \
-    --node-rank=$NODE_RANK \
-    --master-addr=$MASTER_ADDR \
-    --master-port=$MASTER_PORT \
+# Launch using DeepSpeed (better ROCm support)
+deepspeed --num_nodes=$NNODES --num_gpus=$NPROC_PER_NODE \
+    --master_addr=$MASTER_ADDR --master_port=$MASTER_PORT \
     /app/scripts/run_gemma_inference.py
 
 echo "=== Inference Complete ==="
