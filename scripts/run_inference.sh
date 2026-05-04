@@ -3,6 +3,11 @@
 #
 # This script wraps PyTorch's torch.distributed.run module for distributed inference.
 # It should be run from within the container on each node.
+
+# Set ROCm environment variables to help with memory allocation issues
+export HSA_XNACK=1
+export HIP_VISIBLE_DEVICES=0
+export ROCR_VISIBLE_DEVICES=0
 #
 # Environment variables required:
 #   NODE_RANK    - Rank of this node (0 for master, 1+ for workers)
@@ -38,6 +43,11 @@ echo "Node Rank: $NODE_RANK"
 echo "Master Address: $MASTER_ADDR:$MASTER_PORT"
 echo "World Size: $WORLD_SIZE"
 echo "Processes per Node: $NPROC_PER_NODE"
+echo ""
+
+# Print ROCm device information
+echo "=== ROCm Device Information ==="
+rocm-smi || echo "rocm-smi not available"
 echo ""
 
 # Launch using PyTorch's torch.distributed.run module
