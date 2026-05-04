@@ -11,7 +11,7 @@ For deployment to fixed nodes, this size is manageable and the image doesn't nee
 ## Architecture
 
 - **Framework**: DeepSpeed with ZeRO-3 sharding
-- **Model**: Gemma 2 26B or 31B (quantized 4-bit)
+- **Model**: Gemma 4 26B or 31B (quantized 4-bit)
 - **Hardware**: AMD 6800M GPUs (16GB VRAM each)
 - **Containerization**: Docker (ROCm base image)
 - **Future Path**: Kubernetes deployment
@@ -69,7 +69,7 @@ distributed_ai_model/
 
 ## Model Quantization
 
-Gemma 2 26B/31B requires 4-bit quantization to fit within 2x 16GB VRAM. The inference script uses `bitsandbytes` for this purpose.
+Gemma 4 26B/31B requires 4-bit quantization to fit within 2x 16GB VRAM. The inference script uses `bitsandbytes` for this purpose.
 
 ## Next Steps
 
