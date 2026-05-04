@@ -4,12 +4,80 @@ This guide walks you through setting up and running the distributed inference fo
 
 ## Prerequisites
 
-1. **ROCm Drivers**: Ensure ROCm 6.x is installed on both host machines.
+1. **ROCm Drivers**: Ensure ROCm 6.x is installed on both host machines (see Step 0 below).
 2. **Docker**: Installed and configured to allow GPU access.
 3. **Network**: Both Beelinks must be on the same network and able to communicate.
 4. **Hugging Face Account**: Required to access Gemma 4 26B model.
 5. **OS version**: Tested using Ubuntu 26.04 LTS Minimal Server
-6. **Packages**: 
+6. **Packages**:
+
+## Step 0: Verify ROCm Installation (On Both Nodes)
+
+Before proceeding, ensure ROCm drivers are properly installed on both host machines.
+
+### Check ROCm Installation
+
+1. **Verify ROCm is installed**:
+   ```bash
+   # Check if ROCm is installed and its version
+   rocm-smi
+   
+   # Alternative check
+   /opt/rocm/bin/rocm-smi
+   ```
+
+2. **Check GPU detection**:
+   ```bash
+   # List available GPUs
+   rocm-smi --showhw
+   
+   # Check if your AMD 6800M is detected
+   lspci | grep -i vga
+   ```
+
+3. **Verify kernel modules**:
+   ```bash
+   # Check if AMD GPU modules are loaded
+   lsmod | grep amdgpu
+   ```
+
+### Install ROCm (if not present)
+
+**For Ubuntu 26.04 (resolute)**: ROCm is available in the default Ubuntu repositories.
+
+1. **Install ROCm from Ubuntu repositories**:
+   ```bash
+   sudo apt update
+   sudo apt install rocm rocm-dev rocm-smi
+   
+   # Add user to video group
+   sudo usermod -a -G video $LOGNAME
+   ```
+
+2. **Reboot**:
+   ```bash
+   sudo reboot
+   ```
+
+**For other Ubuntu versions**: If ROCm isn't available in your default repositories, you may need to add the external ROCm repository or rely entirely on the Docker container which includes ROCm.
+
+### Verify Docker GPU Access
+
+After installing ROCm, verify Docker can access the GPU:
+
+1. **Test ROCm in Docker**:
+   ```bash
+   docker run --rm --device=/dev/kfd --device=/dev/dri --group-add=video \
+     rocm/pytorch:rocm7.2.2_ubuntu22.04_py3.10_pytorch_release_2.10.0 \
+     rocm-smi
+   ```
+
+2. **Check PyTorch ROCm support**:
+   ```bash
+   docker run --rm --device=/dev/kfd --device=/dev/dri --group-add=video \
+     rocm/pytorch:rocm7.2.2_ubuntu22.04_py3.10_pytorch_release_2.10.0 \
+     python -c "import torch; print(f'ROCm available: {torch.cuda.is_available()}'); print(f'GPU count: {torch.cuda.device_count()}')"
+   ``` 
 
 ## Step 1: Download Model Weights
 
@@ -17,20 +85,39 @@ Before building the container, you'll need to download the Gemma 4 26B model wei
 
 1. **Request Access**: Go to https://huggingface.co/google/gemma-4-26b-it and request access to the model repository.
 
-2. **Install Hugging Face CLI**:
+2. **Create and activate a Python virtual environment**:
    ```bash
-   pip install huggingface_hub
+   python3 -m venv gemma_env
+   source gemma_env/bin/activate
    ```
 
-3. **Log in to Hugging Face**:
+3. **Install Hugging Face CLI**:
    ```bash
-   huggingface-cli login
+   pip install huggingface_hub[hf]
    ```
-   Use your Hugging Face access token when prompted.
+
+4. **Deactivate the environment when done**:
+   ```bash
+   deactivate
+   ```
+
+5. **Create an Access Token** (if you haven't already):
+   - Go to https://huggingface.co/settings/tokens
+   - Click "Create new token"
+   - Give it a name (e.g., "gemma-inference")
+   - Set permissions to "Read" (or "Write" if you plan to upload models)
+   - Copy the token (starts with `hf_...`)
+
+6. **Log in to Hugging Face** (after reactivating the environment when needed):
+   ```bash
+   source gemma_env/bin/activate
+   hf login
+   ```
+   When prompted, paste your Hugging Face access token.
 
 4. **Download the Model**:
    ```bash
-   huggingface-cli download google/gemma-4-26b-it --local-dir /path/to/model_weights
+   hf download google/gemma-4-26b-it --local-dir /path/to/model_weights
    ```
 
    For better VRAM utilization, consider looking for a community quantized version of the model on Hugging Face.

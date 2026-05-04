@@ -6,13 +6,16 @@ This script loads the Gemma 4 26B/31B model using DeepSpeed ZeRO-3 sharding
 to distribute the model across multiple GPUs (pot on separate nodes).
 
 Usage:
-    torchrun --nnodes=2 --nproc-per-node=1 --node-rank=$NODE_RANK \
+    # Method 1: Using PyTorch torch.distributed.run module
+    python -m torch.distributed.run --nnodes=2 --nproc-per-node=1 --node-rank=$NODE_RANK \
              --master-addr=$MASTER_ADDR --master-port=29500 \
              run_gemma_inference.py
 
-Or with DeepSpeed launcher:
+    # Method 2: Using DeepSpeed launcher (recommended)
     deepspeed --num_nodes=2 --num_gpus=1 --master_addr=$MASTER_ADDR \
               --master_port=29500 run_gemma_inference.py
+
+Note: The 'torchrun' command may not be available in your environment. Use 'python -m torch.distributed.run' or 'deepspeed' instead.
 """
 
 import os

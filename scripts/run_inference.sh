@@ -1,7 +1,7 @@
 #!/bin/bash
 # Gemma Distributed Inference Launch Script
 #
-# This script wraps the torchrun launcher for distributed inference.
+# This script wraps PyTorch's torch.distributed.run module for distributed inference.
 # It should be run from within the container on each node.
 #
 # Environment variables required:
@@ -40,13 +40,14 @@ echo "World Size: $WORLD_SIZE"
 echo "Processes per Node: $NPROC_PER_NODE"
 echo ""
 
-# Launch using torchrun (PyTorch's distributed launcher)
-torchrun \
+# Launch using PyTorch's torch.distributed.run module
+# Note: Use 'python -m torch.distributed.run' instead of 'torchrun' command
+python -m torch.distributed.run \
     --nnodes=$NNODES \
-    --nproc_per_node=$NPROC_PER_NODE \
-    --node_rank=$NODE_RANK \
-    --master_addr=$MASTER_ADDR \
-    --master_port=$MASTER_PORT \
+    --nproc-per-node=$NPROC_PER_NODE \
+    --node-rank=$NODE_RANK \
+    --master-addr=$MASTER_ADDR \
+    --master-port=$MASTER_PORT \
     /app/scripts/run_gemma_inference.py
 
 echo "=== Inference Complete ==="
