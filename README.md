@@ -2,6 +2,12 @@
 
 Distributed inference setup for Gemma 2 26B/31B models across multiple AMD GPU nodes using DeepSpeed and containerization.
 
+## Docker Image Size
+
+The Docker image has a content size of approximately 10.3GB. This is primarily due to the base ROCm PyTorch image (39GB) which includes the full ROCm runtime, PyTorch with GPU support, and other dependencies required for GPU-accelerated ML workloads. While we've implemented optimizations to clean up unnecessary files, the inherent size of the GPU ML stack makes this size reasonable for this type of workload.
+
+For deployment to fixed nodes, this size is manageable and the image doesn't need to be transferred frequently.
+
 ## Architecture
 
 - **Framework**: DeepSpeed with ZeRO-3 sharding
@@ -15,7 +21,7 @@ Distributed inference setup for Gemma 2 26B/31B models across multiple AMD GPU n
 ```
 distributed_ai_model/
 ├── README.md           # Project documentation
-├── Dockerfile          # Container build instructions
+├── Dockerfile          # Multi-stage container build instructions
 ├── deepspeed_config.json # DeepSpeed ZeRO configuration
 ├── scripts/
 │   ├── run_gemma_inference.py # Main inference script
